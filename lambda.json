@@ -1,9 +1,9 @@
 {
-  "name": "samplelambda",
-  "description": "samplelambda",
+  "name": "timeManegementSkill",
+  "description": "Demonstrates a basic skill built with the Amazon Alexa Skills Kit.",
   "region": "ap-northeast-1",
   "handler": "lambda_function.lambda_handler",
-  "role": "arn:aws:iam::400168155065:role/adminRole",
+  "role": "arn:aws:iam::400168155065:role/lambda_basic_execution",
   "timeout": 300,
   "memory": 128
 }
