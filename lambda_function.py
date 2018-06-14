@@ -107,15 +107,19 @@ def set_task_in_session(intent, session):
 
 def set_time_in_session(intent, session):
     card_title = intent['name']
-    session_attributes = {}
+    session_attributes = session['attributes']
     should_end_session = False
     reprompt_text = ""
 
     print('intent[slot]' + str(intent['slots']))
     if 'time' in intent['slots'] and session.get('attributes', {}):
         time = intent['slots']['time']['value']
+        # add time to the session
+        session['attributes']['time'] = time
+        session_attributes = session['attributes']
         task_name = session['attributes']['taskName']
-        should_end_session = True
+        # session_attributes = session['attributes'].update(create_time_attributes(time))
+        should_end_session = False
         speech_output = task_name + 'の時間を' + time + '時間記録しました。'
     else:
         speech_output = "もう一度時間をはっきりと話してみてください。" \
