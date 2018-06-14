@@ -118,7 +118,6 @@ def set_time_in_session(intent, session):
         session['attributes']['time'] = time
         session_attributes = session['attributes']
         task_name = session['attributes']['taskName']
-        # session_attributes = session['attributes'].update(create_time_attributes(time))
         should_end_session = False
         speech_output = task_name + 'の時間を' + time + '時間記録しました。'
     else:
@@ -130,18 +129,25 @@ def set_time_in_session(intent, session):
         card_title, speech_output, reprompt_text, should_end_session))
 
 
-def get_color_from_session(intent, session):
+def get_task_from_session(intent, session):
     session_attributes = {}
     reprompt_text = None
 
-    if session.get('attributes', {}) and "favoriteColor" in session.get('attributes', {}):
-        favorite_color = session['attributes']['favoriteColor']
-        speech_output = "Your favorite color is " + favorite_color + \
-                        ". Goodbye."
+    if (session.get('attributes', {}) and
+        "taskName" in session.get('attributes', {}) and
+        "time"     in session.get('attributes', {})):
+
+        # get the slots
+        slots  = intent['slots']
+        date   = slots['date']['value']
+        target = slots['target']['value']
+
+        taskName = session['attributes']['taskName']
+        time     = session['attributes']['time']
+        speech_output = date + "の" + taskName + "の時間は" + time + "です。"
         should_end_session = True
     else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "You can say, my favorite color is red."
+        speech_output = "もう一度話してみてください。"
         should_end_session = False
 
     # Setting reprompt_text to None signifies that we do not want to reprompt
@@ -181,7 +187,7 @@ def on_intent(intent_request, session):
         return set_time_in_session(intent, session)
     # 今日のゆーちゅーぶの時間を教えて
     elif intent_name == "GetTimeIntent":
-        return get_color_from_session(intent, session)
+        return get_task_from_session(intent, session)
     elif intent_name == "AMAZON.HelpIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
