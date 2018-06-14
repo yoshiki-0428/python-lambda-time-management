@@ -1,7 +1,85 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
+import uuid
+import datetime
+import json
+import decimal
+
+# Helper class to convert a DynamoDB item to JSON.
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            return str(o)
+        return super(DecimalEncoder, self).default(o)
 
 # --------------- Main handler ------------------
+def db_access(task_name, time):
+    today = datetime.date.today()
+
+    # TODO ユーザの確認 & 例外処理
+    response = get_json_from_db("yoshiki")
+
+    # dynamoDBの値はユニコード化されて送られてくるので変換が必要
+    for i in response[u'Items']:
+        print(json.dumps(i, cls=DecimalEncoder))
+    response = response['Items'][0]
+
+    print("##### start #####")
+    print(response)
+    print(type(response))
+    print("#################")
+
+    tasks = []
+    for task in response['task']:
+        tasks.append(task['value'])
+
+    print(tasks)
+    # task jsonが存在しない
+    if not(response['task']):
+        response['task'] = [{
+            "date": [{
+                "date": str(today),
+                "used_time": time
+            }]
+        }]
+
+    elif task_name in tasks:
+        print("##### task contain from json #####")
+        # 指定のタスクに日時と経過時間を追加
+        for task in response['task']:
+            if task['value'] == task_name:
+                # TODO 当日のデータが入ってきたときに更新、当日のデータがない場合に新規作成にしたい
+                for v in task['date']:
+                    isContain = v['date'] == str(today)
+                print(not(isContain))
+                if not(isContain):
+                    print("###### isContain")
+                    task['date'].append(
+                        # TODO 共通化
+                        {
+                            "date": str(today),
+                            "used_time": int(time)
+                        })
+    else:
+        # 初めてタスクが作られたときに追加
+        response['task'].append({
+            "date": [
+                # TODO 共通化
+                {
+                    "date": str(today),
+                    "used_time": int(time)
+                }
+            ],
+            "value": task_name
+        })
+
+    print("#### open response #####")
+    print(response)
+    print("########################")
+    put_json_to_db(response)
+
 
 def lambda_handler(event, context):
     print("event.session.application.applicationId=" +
@@ -21,6 +99,52 @@ def lambda_handler(event, context):
         return on_intent(event['request'], event['session'])
     elif event['request']['type'] == "SessionEndedRequest":
         return on_session_ended(event['request'], event['session'])
+
+
+# --------------- DB Put Query Access ------------------
+
+# def put_item(date, task_name, time):
+#     dynamoDB = boto3.resource("dynamodb")
+#     table = dynamoDB.Table("time_management") # DynamoDBのテーブル名
+#
+#     # DynamoDBへのPut処理実行
+#     table.put_item(
+#         Item =
+#         {
+#           "task": [
+#             {
+#               "date": [
+#                 {
+#                   "date": date,
+#                   "used_time": time
+#                 }
+#               ],
+#               "value": task_name
+#             }
+#           ],
+#           "user_id": "yoshiki"
+#         }
+#     )
+
+def put_json_to_db(json):
+    dynamoDB = boto3.resource("dynamodb")
+    table = dynamoDB.Table("time_management") # DynamoDBのテーブル名
+
+    # DynamoDBへのPut処理実行
+    table.put_item(Item = json)
+
+
+
+def get_json_from_db(user_id):
+    dynamoDB = boto3.resource("dynamodb")
+    table = dynamoDB.Table("time_management") # DynamoDBのテーブル名
+
+    # DynamoDBへのPut処理実行
+    query_data = table.query(
+        KeyConditionExpression = Key("user_id").eq(user_id),
+        Limit = 1 # 取得するデータ件数
+    )
+    return query_data
 
 
 # --------------- Helpers that build all of the responses ----------------------
@@ -120,6 +244,8 @@ def set_time_in_session(intent, session):
         task_name = session['attributes']['taskName']
         should_end_session = False
         speech_output = task_name + 'の時間を' + time + '時間記録しました。'
+        db_access(task_name, time)
+
     else:
         speech_output = "もう一度時間をはっきりと話してみてください。" \
                         "例えば　「4時間」　というふうに話してみてください"
@@ -144,15 +270,12 @@ def get_task_from_session(intent, session):
 
         taskName = session['attributes']['taskName']
         time     = session['attributes']['time']
-        speech_output = date + "の" + taskName + "の時間は" + time + "です。"
+        speech_output = date + "の" + taskName + "の時間は" + time + "時間です。"
         should_end_session = True
     else:
         speech_output = "もう一度話してみてください。"
         should_end_session = False
 
-    # Setting reprompt_text to None signifies that we do not want to reprompt
-    # the user. If the user does not respond or says something that is not
-    # understood, the session will end.
     return build_response(session_attributes, build_speechlet_response(
         intent['name'], speech_output, reprompt_text, should_end_session))
 
