@@ -2,7 +2,6 @@
 from __future__ import print_function
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
-import uuid
 import datetime
 import json
 import decimal
@@ -14,72 +13,8 @@ class DecimalEncoder(json.JSONEncoder):
             return str(o)
         return super(DecimalEncoder, self).default(o)
 
+
 # --------------- Main handler ------------------
-def db_access(task_name, time):
-    today = datetime.date.today()
-
-    # TODO ユーザの確認 & 例外処理
-    response = get_json_from_db("yoshiki")
-
-    # dynamoDBの値はユニコード化されて送られてくるので変換が必要
-    for i in response[u'Items']:
-        print(json.dumps(i, cls=DecimalEncoder))
-    response = response['Items'][0]
-
-    print("##### start #####")
-    print(response)
-    print(type(response))
-    print("#################")
-
-    tasks = []
-    for task in response['task']:
-        tasks.append(task['value'])
-
-    print(tasks)
-    # task jsonが存在しない
-    if not(response['task']):
-        response['task'] = [{
-            "date": [{
-                "date": str(today),
-                "used_time": time
-            }]
-        }]
-
-    elif task_name in tasks:
-        print("##### task contain from json #####")
-        # 指定のタスクに日時と経過時間を追加
-        for task in response['task']:
-            if task['value'] == task_name:
-                # TODO 当日のデータが入ってきたときに更新、当日のデータがない場合に新規作成にしたい
-                for v in task['date']:
-                    isContain = v['date'] == str(today)
-                print(not(isContain))
-                if not(isContain):
-                    print("###### isContain")
-                    task['date'].append(
-                        # TODO 共通化
-                        {
-                            "date": str(today),
-                            "used_time": int(time)
-                        })
-    else:
-        # 初めてタスクが作られたときに追加
-        response['task'].append({
-            "date": [
-                # TODO 共通化
-                {
-                    "date": str(today),
-                    "used_time": int(time)
-                }
-            ],
-            "value": task_name
-        })
-
-    print("#### open response #####")
-    print(response)
-    print("########################")
-    put_json_to_db(response)
-
 
 def lambda_handler(event, context):
     print("event.session.application.applicationId=" +
@@ -103,46 +38,94 @@ def lambda_handler(event, context):
 
 # --------------- DB Put Query Access ------------------
 
-# def put_item(date, task_name, time):
-#     dynamoDB = boto3.resource("dynamodb")
-#     table = dynamoDB.Table("time_management") # DynamoDBのテーブル名
-#
-#     # DynamoDBへのPut処理実行
-#     table.put_item(
-#         Item =
-#         {
-#           "task": [
-#             {
-#               "date": [
-#                 {
-#                   "date": date,
-#                   "used_time": time
-#                 }
-#               ],
-#               "value": task_name
-#             }
-#           ],
-#           "user_id": "yoshiki"
-#         }
-#     )
+def db_access(task_name, time):
+    today = str(datetime.date.today())
+    time = int(time)
+
+    # TODO ユーザの確認 & 例外処理
+    response = get_json_from_db("yoshiki")
+
+    # dynamoDBの値はユニコード化されて送られてくるので変換が必要
+    for i in response[u'Items']:
+        print(json.dumps(i, cls=DecimalEncoder))
+    # DBの値はItemsの0番目に格納されている
+    response = response['Items'][0]
+
+    print("##### db response debug #####")
+    print(type(response))
+    print(response)
+    print("#################")
+
+    tasks = []
+    if type(response['task'] == list):
+        for task in response['task']:
+            tasks.append(task['value'])
+
+    # タスクが存在しない場合に追加
+    if len(response['task']) == 0:
+        print("##### no task #####")
+        response['task'] = [{
+            "date": [create_date_json(today, time)],
+            "value": task_name
+        }]
+
+    # タスクがすでに存在する場合
+    elif task_name in tasks:
+        print("##### task contain #####")
+        # 指定のタスクに日時と経過時間を追加
+        for date in response['task']:
+            if date['value'] == task_name:
+                dates = create_dates(date)
+                # 当日のデータあり
+                if today in dates:
+                    for v in date['date']:
+                        if v['date'] == today:
+                            v['date'] = today
+                            v['used_time'] = time
+                            print("#### show dates")
+                            print(v)
+
+                # 当日のデータなし
+                else:
+                    date['date'].append(create_date_json(today, time))
+
+    # 未登録のタスクがある場合
+    else:
+        print("##### don't register task #####")
+        response['task'].append({
+            "date": [create_date_json(today, time)],
+            "value": task_name
+        })
+
+    print("#### open response #####")
+    print(response)
+    print("########################")
+    put_json_to_db(response)
+
+
+def create_dates(date):
+    dates = []
+    for v in date['date']:
+        dates.append(v['date'])
+    return dates
+
 
 def put_json_to_db(json):
     dynamoDB = boto3.resource("dynamodb")
-    table = dynamoDB.Table("time_management") # DynamoDBのテーブル名
+    table = dynamoDB.Table("time_management")
 
     # DynamoDBへのPut処理実行
-    table.put_item(Item = json)
-
+    table.put_item(Item=json)
 
 
 def get_json_from_db(user_id):
     dynamoDB = boto3.resource("dynamodb")
-    table = dynamoDB.Table("time_management") # DynamoDBのテーブル名
+    table = dynamoDB.Table("time_management")
 
     # DynamoDBへのPut処理実行
     query_data = table.query(
-        KeyConditionExpression = Key("user_id").eq(user_id),
-        Limit = 1 # 取得するデータ件数
+        KeyConditionExpression=Key("user_id").eq(user_id),
+        Limit=1
     )
     return query_data
 
@@ -208,18 +191,25 @@ def create_task_attributes(target):
     return {"taskName": target}
 
 
+def create_date_json(today, time):
+    return {
+        "date": today,
+        "used_time": time
+    }
+
+
 def set_task_in_session(intent, session):
     session_attributes = {}
     card_title = intent['name']
     should_end_session = False
     print('intent[slot]' + str(intent['slots']))
+
     if 'target' in intent['slots']:
         target = intent['slots']['target']['value']
         session_attributes = create_task_attributes(target)
-        speech_output = target + \
-                        "の時間を記録します。 " + \
-                        "何時間ですか？"
+        speech_output = target + "の時間を記録します。何時間ですか？"
         reprompt_text = "何時間記録しますか？"
+
     else:
         speech_output = "もう一度タスク名をはっきりと話してみてください。" \
                         "例えば　「ゆーちゅーぶの時間を記録して」　というふうに話してみてください"
