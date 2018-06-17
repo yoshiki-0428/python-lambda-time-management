@@ -2,20 +2,11 @@
 from __future__ import print_function
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
+from helper.helper import DecimalEncoder
 import datetime
 import json
-import decimal
-
-# Helper class to convert a DynamoDB item to JSON.
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, decimal.Decimal):
-            return str(o)
-        return super(DecimalEncoder, self).default(o)
-
 
 # --------------- Main handler ------------------
-
 def lambda_handler(event, context):
     print("event.session.application.applicationId=" +
           event['session']['application']['applicationId'])
@@ -37,7 +28,6 @@ def lambda_handler(event, context):
 
 
 # --------------- DB Put Query Access ------------------
-
 def db_access(task_name, time):
     today = str(datetime.date.today())
     time = int(time)
@@ -47,7 +37,7 @@ def db_access(task_name, time):
 
     # dynamoDBの値はユニコード化されて送られてくるので変換が必要
     for i in response[u'Items']:
-        print(json.dumps(i, cls=DecimalEncoder))
+        json.dumps(i, cls=DecimalEncoder)
     # DBの値はItemsの0番目に格納されている
     response = response['Items'][0]
 
@@ -122,13 +112,62 @@ def get_json_from_db(user_id):
     dynamoDB = boto3.resource("dynamodb")
     table = dynamoDB.Table("time_management")
 
-    # DynamoDBへのPut処理実行
+    # DynamoDBへのGet処理実行
     query_data = table.query(
         KeyConditionExpression=Key("user_id").eq(user_id),
         Limit=1
     )
     return query_data
 
+
+def get_task_time_from_db(target, date = None, user_id = "yoshiki"):
+    dynamoDB = boto3.resource("dynamodb")
+    table = dynamoDB.Table("time_management")
+
+    # DynamoDBへのGet処理実行
+    query_data = table.query(
+        KeyConditionExpression=Key("user_id").eq(user_id),
+        Limit=1
+    )
+
+    return query_data
+
+
+def get_time_by_target(target, target_date = None):
+    response = get_json_from_db("yoshiki")
+    # dynamoDBの値はユニコード化されて送られてくるので変換が必要
+    for i in response[u'Items']:
+        json.dumps(i, cls=DecimalEncoder)
+    # DBの値はItemsの0番目に格納されている
+    response = response['Items'][0]
+
+    # 今週だった場合
+    target_date_array = []
+    if target_date.find("W") != -1:
+        for i in range(7):
+            date = datetime.date.today() - datetime.timedelta(days=i)
+            target_date_array.append(str(date))
+
+    else:
+        target_date_array.append(target_date)
+
+    print(target_date_array)
+
+    count = 0
+    task = search_task_by_target(response, target)
+
+    for date in task['date']:
+        if date['date'] in target_date_array:
+            count = count + int(date['used_time'])
+    print("###### show count")
+    print(count)
+    return count
+
+
+def search_task_by_target(response, target):
+    for task in response['task']:
+        if task['value'] == target:
+            return task
 
 # --------------- Helpers that build all of the responses ----------------------
 
@@ -245,23 +284,33 @@ def set_time_in_session(intent, session):
         card_title, speech_output, reprompt_text, should_end_session))
 
 
-def get_task_from_session(intent, session):
+def get_time_from_json(intent, session):
     session_attributes = {}
     reprompt_text = None
 
-    if (session.get('attributes', {}) and
-        "taskName" in session.get('attributes', {}) and
-        "time"     in session.get('attributes', {})):
+    if (intent.get("slots", {}) and
+            intent['slots'].get("date", {}) and
+            intent['slots'].get("target", {})):
 
         # get the slots
         slots  = intent['slots']
         date   = slots['date']['value']
         target = slots['target']['value']
 
-        taskName = session['attributes']['taskName']
-        time     = session['attributes']['time']
-        speech_output = date + "の" + taskName + "の時間は" + time + "時間です。"
+        # task_name = session['attributes']['taskName']
+        # time     = session['attributes']['time']
+        print("##### show iso date")
+        print(type(date))
+        print(date)
+
+        time = get_time_by_target(target, date)
+        if date.find("W") == -1:
+            speech_output = date + "の" + target + "に使用した時間は" + str(time) + "時間です。"
+        else:
+            speech_output = "今週の" + target + "に使用した時間は" + str(time) + "時間です。"
+
         should_end_session = True
+
     else:
         speech_output = "もう一度話してみてください。"
         should_end_session = False
@@ -293,14 +342,14 @@ def on_intent(intent_request, session):
     print('intent_name ===' + intent_name)
 
     # ゆーちゅーぶの時間を記録して
-    if intent_name == "TimeManagementIntent":
+    if intent_name == "RegisterTaskIntent":
         return set_task_in_session(intent, session)
     # 三時間
-    elif intent_name == "RegistorTaskTimeIntent":
+    elif intent_name == "RegisterTimeIntent":
         return set_time_in_session(intent, session)
     # 今日のゆーちゅーぶの時間を教えて
     elif intent_name == "GetTimeIntent":
-        return get_task_from_session(intent, session)
+        return get_time_from_json(intent, session)
     elif intent_name == "AMAZON.HelpIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
