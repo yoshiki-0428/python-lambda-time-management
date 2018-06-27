@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "session": {
+    "new": true,
+    "user": {
+      "userId": "amzn1.ask.account.AEMJX5C4QMOF4OBUH7CNIQPC563XJMWP3DEOHXAG5HHHJABGGY6GIVM3ZINUVJSEXMGKG6VWUC6RCKLWBGCY5USC47ZK75PGJXOUREHF3ISNVQ43OUHSHKUHCWCDXAMIYJGQZHZTEWWIY56MADTEFRI5C5CV4MVNTFGZRSL2EWXZYO2UTCM4HC2LLA6XZIZUCBOJG4XYD6NUQNA"
+    }
+  },
+  "request": {
+    "type": "LaunchRequest",
+    "locale": "ja-JP",
+    "shouldLinkResultBeReturned": false
+  }
+}

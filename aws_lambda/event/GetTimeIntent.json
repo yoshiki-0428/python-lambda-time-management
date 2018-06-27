@@ -1,0 +1,46 @@
+{
+	"version": "1.0",
+	"session": {
+		"new": false,
+		"user": {
+			"userId": "amzn1.ask.account.AEMJX5C4QMOF4OBUH7CNIQPC563XJMWP3DEOHXAG5HHHJABGGY6GIVM3ZINUVJSEXMGKG6VWUC6RCKLWBGCY5USC47ZK75PGJXOUREHF3ISNVQ43OUHSHKUHCWCDXAMIYJGQZHZTEWWIY56MADTEFRI5C5CV4MVNTFGZRSL2EWXZYO2UTCM4HC2LLA6XZIZUCBOJG4XYD6NUQNA"
+		}
+	},
+	"request": {
+		"type": "IntentRequest",
+		"locale": "ja-JP",
+		"intent": {
+			"name": "GetTimeIntent",
+			"confirmationStatus": "NONE",
+			"slots": {
+				"date": {
+					"name": "date",
+					"value": "2018-06-15",
+					"confirmationStatus": "NONE"
+				},
+				"target": {
+					"name": "target",
+					"value": "ゆーちゅーぶ",
+					"resolutions": {
+						"resolutionsPerAuthority": [
+							{
+								"status": {
+									"code": "ER_SUCCESS_MATCH"
+								},
+								"values": [
+									{
+										"value": {
+											"name": "ゆーちゅーぶ",
+											"id": "fee63dbe43dd4f08e8f1116875822eaf"
+										}
+									}
+								]
+							}
+						]
+					},
+					"confirmationStatus": "NONE"
+				}
+			}
+		}
+	}
+}

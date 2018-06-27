@@ -13,12 +13,12 @@
     "type": "IntentRequest",
     "locale": "ja-JP",
     "intent": {
-      "name": "RegisterTimeIntent",
+      "name": "RegisterTaskIntent",
       "confirmationStatus": "NONE",
       "slots": {
         "time": {
           "name": "time",
-          "value": "1",
+          "value": "4",
           "confirmationStatus": "NONE"
         }
       }
