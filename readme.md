@@ -1,28 +1,29 @@
-# TimeManagementApp from Alexa
+## TimeManagementApp from Alexa
 
-# Description  
+#### Description
 Alexaに自分の〇〇のタスクの時間を登録することができます。
 
-- Conversation Example
-1. 時間管理アプリを開いてゆーちゅーぶの時間を記録して
+- Conversation Example(会話の例)
+1. 時間管理アプリを開いてyoutubeの時間を記録して
 2. 四時間
-3. 今日のゆーちゅーぶの時間を教えて
+3. 今日のyoutubeの時間を教えて
 
-- Deploy
-必要ツール
-python3.6
-pip3
-python-lambda-local
-lambda-uploader
+##### Need Tools
+- python3.6
+- pip(3)
+- [dynamoDB local](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip)
+ [(how to)](https://qiita.com/Hiroki11x/items/756797b45d4461784013)
 
-- How to Deploy
-lambda-uploader
+##### How to Deploy
+1. aws configure
+2. Set your aws configure
+3. [lambda-uploader](https://dev.classmethod.jp/cloud/deploy-aws-lambda-python-with-lambda-uploader/)
 
-- How to Execution Python
-python-lambda-local -f lambda_handler lambda_function.py launch.json
+##### How to Execution lambda
+python-lambda-local --function lambda_handler --timeout 5 aws_lambda/lambda_function.py aws_lambda/event.json
 
-- TODO
-.gitignoreの追加
-event.json系を外すべきか否か
-dynamoDBの設定
+###### TODO
+- .gitignoreの追加
+- event.json系を外すべきか否か
+- dynamoDBの設定
 

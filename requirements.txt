@@ -1,3 +1,5 @@
+python-lambda-local
+lambda-uploader
 requests
 future
 boto3
