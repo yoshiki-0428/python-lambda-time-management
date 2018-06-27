@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import boto3
-from boto3.dynamodb.conditions import Key
-from aws_lambda.helper import DecimalEncoder
+
 import datetime
 import json
+
+import boto3
+from boto3.dynamodb.conditions import Key
+from helper import DecimalEncoder
+
 
 # --------------- Main handler ------------------
 def lambda_handler(event, context):

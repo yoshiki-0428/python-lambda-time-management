@@ -19,11 +19,10 @@ Alexaに自分の〇〇のタスクの時間を登録することができます
 2. Set your aws configure
 3. [lambda-uploader](https://dev.classmethod.jp/cloud/deploy-aws-lambda-python-with-lambda-uploader/)
 
-##### How to Execution lambda
-python-lambda-local --function lambda_handler --timeout 5 aws_lambda/lambda_function.py aws_lambda/event.json
+##### How to local execution lambda
+python-lambda-local --function lambda_handler --timeout 5 aws_lambda/main.py aws_lambda/event/launch.json
 
 ###### TODO
-- .gitignoreの追加
 - event.json系を外すべきか否か
 - dynamoDBの設定
 
